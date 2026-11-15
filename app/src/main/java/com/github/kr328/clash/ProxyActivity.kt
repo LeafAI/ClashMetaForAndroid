@@ -44,6 +44,8 @@ class ProxyActivity : BaseActivity<ProxyDesign>() {
                                 startActivity(ProxyActivity::class.intent)
 
                                 finish()
+                            } else {
+                                design.requests.trySend(ProxyDesign.Request.ReloadAll)
                             }
                         }
                         else -> Unit
@@ -96,7 +98,7 @@ class ProxyActivity : BaseActivity<ProxyDesign>() {
                                     healthCheck(names[it.index])
                                 }
 
-                                design.requests.send(ProxyDesign.Request.Reload(it.index))
+                                design.requests.send(ProxyDesign.Request.ReloadAll)
                             }
                         }
                         is ProxyDesign.Request.PatchMode -> {

@@ -53,20 +53,14 @@ func (s *sortableProxyList) Swap(i, j int) {
 	s.list[i], s.list[j] = s.list[j], s.list[i]
 }
 
+// QueryProxyGroupNames lists the proxy groups. The GLOBAL group is always
+// listed first so its node can be chosen without switching to global mode.
 func QueryProxyGroupNames(excludeNotSelectable bool) []string {
-	mode := tunnel.Mode()
-
-	if mode == tunnel.Direct {
-		return []string{}
-	}
-
 	global := tunnel.Proxies()["GLOBAL"].Adapter().(outboundgroup.ProxyGroup)
 	proxies := global.Providers()[0].Proxies()
 	result := make([]string, 0, len(proxies)+1)
 
-	if mode == tunnel.Global {
-		result = append(result, "GLOBAL")
-	}
+	result = append(result, "GLOBAL")
 
 	for _, p := range proxies {
 		if g, ok := p.Adapter().(outboundgroup.ProxyGroup); ok {
@@ -110,7 +104,7 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 			},
 		}
 
-		sort.Sort(wrapper)
+		sort.Stable(wrapper)
 	case Delay:
 		wrapper := &sortableProxyList{
 			list: proxies,
@@ -119,7 +113,7 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 			},
 		}
 
-		sort.Sort(wrapper)
+		sort.Stable(wrapper)
 	case Default:
 	default:
 	}
@@ -183,13 +177,6 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 				}
 			}
 		}
-		testURL := "https://www.gstatic.com/generate_204"
-		for k := range p.ExtraDelayHistories() {
-			if len(k) > 0 {
-				testURL = k
-				break
-			}
-		}
 		_, isGroup := p.Adapter().(outboundgroup.ProxyGroup)
 
 		result = append(result, &Proxy{
@@ -197,7 +184,7 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 			Title:    strings.TrimSpace(title),
 			Subtitle: strings.TrimSpace(subtitle),
 			Type:     p.Type().String(),
-			Delay:    int(p.LastDelayForTestUrl(testURL)),
+			Delay:    currentDelay(p),
 			IsGroup:  isGroup,
 		})
 	}
@@ -224,13 +211,6 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 				}
 			}
 
-			testURL := "https://www.gstatic.com/generate_204"
-			for k := range px.ExtraDelayHistories() {
-				if len(k) > 0 {
-					testURL = k
-					break
-				}
-			}
 			_, isGroup := px.Adapter().(outboundgroup.ProxyGroup)
 
 			result = append(result, &Proxy{
@@ -238,7 +218,7 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 				Title:    strings.TrimSpace(title),
 				Subtitle: strings.TrimSpace(subtitle),
 				Type:     px.Type().String(),
-				Delay:    int(px.LastDelayForTestUrl(testURL)),
+				Delay:    currentDelay(px),
 				IsGroup:  isGroup,
 			})
 		}

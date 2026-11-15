@@ -134,6 +134,10 @@ class ProxyDesign(
 
                     override fun onPageSelected(position: Int) {
                         uiStore.proxyLastGroup = groupNames[position]
+
+                        if (!this@ProxyDesign.adapter.states[position].urlTesting) {
+                            requests.trySend(Request.Reload(position))
+                        }
                     }
                 })
             }

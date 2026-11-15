@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"cfa/native/app"
+	"cfa/native/tunnel"
 
 	"github.com/metacubex/mihomo/common/yaml"
 	"github.com/metacubex/mihomo/config"
@@ -77,6 +78,8 @@ func Load(path string) error {
 
 	// like hub.Parse()
 	hub.ApplyConfig(cfg)
+
+	tunnel.SwitchDelayProfile(path)
 
 	app.ApplySubtitlePattern(rawCfg.ClashForAndroid.UiSubtitlePattern)
 
