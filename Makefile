@@ -11,7 +11,7 @@ export JAVA_HOME
 export ANDROID_HOME
 export ANDROID_SDK_ROOT := $(ANDROID_HOME)
 
-.PHONY: all android-debug android-release android-install android-clean android-apk android-verify serveapk submodules go-vet go-test help
+.PHONY: all android-debug android-release android-install android-clean android-apk android-verify serveapk submodules go-vet go-test sync-upstream sync-check help
 
 all: android-debug android-release
 
@@ -49,6 +49,11 @@ go-vet:
 go-test:
 	cd core/src/main/golang && go test -race -count=1 ./native/rulemerge/
 
+sync-check: go-vet go-test
+
+sync-upstream:
+	./scripts/sync-upstream.sh
+
 android-clean:
 	$(GRADLE) clean
 
@@ -66,6 +71,8 @@ help:
 	@echo "  go-vet           - Vet the native Go packages for android/arm64"
 	@echo "  go-test          - Run the native Go unit tests"
 	@echo "  submodules       - Fetch the mihomo core submodule"
+	@echo "  sync-upstream    - Merge upstream into a sync/upstream-<date> branch and run checks"
+	@echo "  sync-check       - Run go-vet and go-test"
 	@echo "  android-clean    - Clean build artifacts"
 	@echo "  serveapk         - Clean, build release and serve it over HTTP on :9980"
 	@echo ""
