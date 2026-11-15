@@ -157,6 +157,25 @@ subprojects {
                     keyPassword = prop.getProperty("key.password")!!
                 }
             }
+
+            val sharedKeystore = (queryConfigProperty("signing.keystore") as? String)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { file(it) }
+            if (sharedKeystore != null && !keystore.exists()) {
+                require(sharedKeystore.exists()) {
+                    "signing.keystore in local.properties not found: $sharedKeystore"
+                }
+
+                val sharedConfig: com.android.build.gradle.internal.dsl.SigningConfig.() -> Unit = {
+                    storeFile = sharedKeystore
+                    storePassword = queryConfigProperty("signing.store.password") as? String ?: "android"
+                    keyAlias = queryConfigProperty("signing.key.alias") as? String ?: "androiddebugkey"
+                    keyPassword = queryConfigProperty("signing.key.password") as? String ?: "android"
+                }
+
+                getByName("debug", sharedConfig)
+                create("release", sharedConfig)
+            }
         }
 
         buildTypes {
