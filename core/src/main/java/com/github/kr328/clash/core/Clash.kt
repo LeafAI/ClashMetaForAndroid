@@ -211,6 +211,18 @@ object Clash {
         Bridge.nativeClearOverride(slot.ordinal)
     }
 
+    fun readRuleSource(): String {
+        return Bridge.nativeReadRuleSource()
+    }
+
+    fun writeRuleSource(content: String): String? {
+        return Bridge.nativeWriteRuleSource(content)
+    }
+
+    fun validateRuleSource(content: String): String? {
+        return Bridge.nativeValidateRuleSource(content)
+    }
+
     fun queryConfiguration(): UiConfiguration {
         return Json.Default.decodeFromString(
             UiConfiguration.serializer(),

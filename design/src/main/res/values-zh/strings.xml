@@ -120,6 +120,11 @@
     <string name="accept_http_content">仅接受 http(s) 和 content 类型</string>
     <string name="at_least_15_minutes">至少 15 分钟</string>
     <string name="override">覆写</string>
+    <string name="rule_source">全局规则</string>
+    <string name="rule_source_summary">对所有配置追加的规则</string>
+    <string name="rule_source_saved">规则已保存</string>
+    <string name="rule_source_hint">rules:\n  - DOMAIN-SUFFIX,example.com,DIRECT</string>
+    <string name="rule_source_tips">以 YAML 编辑。rules 与 prepend-rules 下的规则置于订阅自带规则之前，append-rules 置于之后。引用了订阅中不存在的分组的规则会被跳过，其他字段会被忽略。</string>
     <string name="general">常规</string>
     <string name="dns">DNS</string>
     <string name="http_port">HTTP 端口</string>

@@ -66,6 +66,27 @@ func clearOverride(slot C.int) {
 	config.ClearOverride(config.OverrideSlot(slot))
 }
 
+//export readRuleSource
+func readRuleSource() *C.char {
+	return C.CString(config.ReadRuleSource())
+}
+
+//export writeRuleSource
+func writeRuleSource(content C.c_string) *C.char {
+	c := C.GoString(content)
+
+	if err := config.ValidateRuleSource(c); err != nil {
+		return marshalString(err)
+	}
+
+	return marshalString(config.WriteRuleSource(c))
+}
+
+//export validateRuleSource
+func validateRuleSource(content C.c_string) *C.char {
+	return marshalString(config.ValidateRuleSource(C.GoString(content)))
+}
+
 //export setAgeSecretKey
 func setAgeSecretKey(key C.c_string) {
 	if key == nil {

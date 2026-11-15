@@ -364,6 +364,43 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeWriteOverride(JNIEnv *env, 
     writeOverride(slot, _content);
 }
 
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeReadRuleSource(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    scoped_string response = readRuleSource();
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeWriteRuleSource(JNIEnv *env, jobject thiz,
+                                                                     jstring content) {
+    TRACE_METHOD();
+
+    scoped_string _content = get_string(content);
+    scoped_string response = writeRuleSource(_content);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeValidateRuleSource(JNIEnv *env, jobject thiz,
+                                                                        jstring content) {
+    TRACE_METHOD();
+
+    scoped_string _content = get_string(content);
+    scoped_string response = validateRuleSource(_content);
+
+    if (response == NULL)
+        return NULL;
+
+    return new_string(response);
+}
+
 JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeClearOverride(JNIEnv *env, jobject thiz,
                                                                    jint slot) {

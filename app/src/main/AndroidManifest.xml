@@ -168,6 +168,12 @@
             android:exported="false"
             android:label="@string/override" />
         <activity
+            android:name=".RuleSourceActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/rule_source"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".MetaFeatureSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"

@@ -125,6 +125,11 @@
     <string name="network">Network</string>
     <string name="interface_">Interface</string>
     <string name="override">Override</string>
+    <string name="rule_source">Global Rules</string>
+    <string name="rule_source_summary">Rules added to every profile</string>
+    <string name="rule_source_saved">Rules saved</string>
+    <string name="rule_source_hint">rules:\n  - DOMAIN-SUFFIX,example.com,DIRECT</string>
+    <string name="rule_source_tips">Edit as YAML. Rules under rules and prepend-rules go before the profile\'s own rules, append-rules go after. Rules naming a group the profile does not have are skipped. Other keys are ignored.</string>
 
     <string name="auto_restart">Auto Restart</string>
     <string name="allow_clash_auto_restart">Allow clash auto restart</string>

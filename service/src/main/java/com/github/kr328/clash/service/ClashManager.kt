@@ -68,6 +68,22 @@ class ClashManager(private val context: Context) : IClashManager,
         Clash.clearOverride(slot)
     }
 
+    override fun readRuleSource(): String {
+        return Clash.readRuleSource()
+    }
+
+    override fun validateRuleSource(content: String): String? {
+        return Clash.validateRuleSource(content)
+    }
+
+    override fun writeRuleSource(content: String): String? {
+        return Clash.writeRuleSource(content).also { error ->
+            if (error == null) {
+                context.sendOverrideChanged()
+            }
+        }
+    }
+
     override suspend fun healthCheck(group: String) {
         return Clash.healthCheck(group).await()
     }
