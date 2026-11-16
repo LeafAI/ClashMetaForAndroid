@@ -44,10 +44,10 @@ go-vet:
 	cd core/src/main/golang && \
 		CGO_ENABLED=1 GOOS=android GOARCH=arm64 \
 		CC=$(ANDROID_HOME)/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android23-clang \
-		go vet -tags foss,with_gvisor,cmfa ./native/config/ ./native/tunnel/ ./native/rulemerge/
+		go vet -tags foss,with_gvisor,cmfa ./native/config/ ./native/tunnel/ ./native/rulemerge/ ./native/connview/ ./native/delaycache/ ./native/sampler/
 
 go-test:
-	cd core/src/main/golang && go test -race -count=1 ./native/rulemerge/
+	cd core/src/main/golang && go test -race -count=1 ./native/rulemerge/ ./native/connview/ ./native/delaycache/ ./native/sampler/
 
 sync-check: go-vet go-test
 

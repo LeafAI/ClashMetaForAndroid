@@ -8,9 +8,10 @@ keep our delta small and easy to re-merge.
 
 | Area | Where |
 |---|---|
-| Delay results shared across views, kept across mode switches | `core/src/main/golang/native/tunnel/delay_cache.go`, `proxies.go`, `connectivity.go`; `ProxyActivity.kt`, `ProxyDesign.kt` |
+| Delay results shared across views, kept across mode switches and app restarts, shown live while testing | `native/delaycache/`, `native/tunnel/delay_cache.go`, `proxies.go`, `connectivity.go`; `ProxyActivity.kt`, `ProxyDesign.kt`, `ProxyViewState.kt` |
 | `GLOBAL` group always listed, tested directly | `tunnel/proxies.go`, `tunnel/connectivity.go` |
 | Global rules (YAML source merged into every profile) | `native/rulemerge/`, `native/config/rules.go`, `RuleSourceActivity.kt`, `RuleSourceDesign.kt`, `design_rule_source.xml` |
+| Connections page (every connection since the app started, matched rule and outbound) | `native/connview/`, `native/sampler/`, `native/tunnel/connections.go`, `Connection*.kt`, `ConnectionsActivity.kt`, `ConnectionsDesign.kt`, `design_connections.xml`, `adapter_connection.xml` |
 | Shared signing key, Makefile, sync script | `build.gradle.kts`, `Makefile`, `scripts/sync-upstream.sh` |
 
 Upstream files we edit and that upstream also changes often (expect conflicts):
@@ -40,7 +41,8 @@ When to sync: after each upstream version bump (`Bump version to ...`). Upstream
 dependencies every one to two weeks, so waiting longer makes each merge bigger.
 
 After every sync, re-verify on an emulator: delay test then switching views/modes,
-`GLOBAL` delay test, and a global rule saved in Settings > Global Rules taking effect.
+`GLOBAL` delay test, a global rule saved in Settings > Global Rules taking effect, and
+the Connections page listing, filtering and closing connections.
 
 The `core/src/foss/golang/clash` submodule (mihomo) is pinned by upstream. Do not bump it
 ourselves. After a merge run `git submodule update --init --depth 1`.
@@ -51,7 +53,8 @@ ourselves. After a merge run `git submodule update --init --depth 1`.
   Output: `app/build/outputs/apk/<flavor>/<type>/`.
 - `make android-install` — build debug and `adb install` the `ABI` build (default arm64-v8a).
 - `make android-verify` — print the signing certificate of built APKs.
-- `make go-vet` / `make go-test` — check the native Go packages (also `make sync-check`).
+- `make go-vet` / `make go-test` — check the native Go packages (`rulemerge`, `connview`,
+  `delaycache`, `sampler`; also `make sync-check`).
 - `make serveapk` — clean, build release, serve over HTTP on port 9980.
 - Requires the Android NDK `29.0.14206865` (the version `build.gradle.kts` pins) in the SDK.
   `Makefile` defaults `ANDROID_HOME` to `~/android-sdk` and `JAVA_HOME` to Android Studio's
@@ -91,6 +94,59 @@ ourselves. After a merge run `git submodule update --init --depth 1`.
 - The parser is `native/rulemerge`, free of mihomo dependencies; its tests run on the host
   with `make go-test`.
 
+## Delay display
+
+- Delays are cached per proxy name (newest result wins, whatever test URL measured it) in
+  `native/delaycache`, and saved to `delays.json` in the core home. The file (version 2) keeps
+  one section per profile, keyed by the profile directory path, so switching A -> B -> A, an
+  app restart, or stopping/starting the service all bring a profile's delays back. Delays
+  stay until the next test of that proxy replaces them.
+- Switching profile writes the profile being left immediately; other saves are debounced by
+  2 s and `reset()` flushes when the service stops. At most 32 profiles are kept (least
+  recently used dropped), and `PruneDelays` (run after each config load) drops profiles whose
+  directory no longer exists, i.e. deleted ones. The active profile is never pruned.
+- Version 1 files (a single profile) are still read and are rewritten as version 2 on the
+  next save.
+- A failed test (`65535`) never replaces a delay that was actually measured, so a flaky or
+  offline test keeps showing the last good value instead of blanking the card.
+- While a test runs, proxies that have no result newer than the test start report
+  `testing=true` and the card shows `…`. `ProxyActivity` re-queries the tested group every
+  300 ms, so each result appears as soon as it lands instead of after the whole test.
+  `finishUrlTesting` (in a `finally`) stops the progress spinner even if the test throws.
+- Never-tested proxies show nothing. `GLOBAL` is tested proxy by proxy (see
+  `testGroupProxies`) because its implicit provider has no test URL.
+- The cache logic is `native/delaycache`, free of mihomo dependencies; its tests run on the
+  host with `make go-test`.
+
+## Connections page
+
+- Main page > Connections (shown only while the core runs) lists every connection since the
+  app process started, closed ones included: target, matched rule `TYPE(PAYLOAD)` → outbound,
+  protocol, app, bytes up/down. Closed connections are dimmed and tagged "Closed". It refreshes
+  every 2 seconds. Use it to confirm which rule a connection hit and which proxy carries it;
+  it complements the `match ... using ...` lines in the logs.
+- The core only lists live connections, so `tunnel.StartConnectionRecorder` (started from
+  `coreInit`) feeds a `connview.History` from snapshots of the live set. A connection missing
+  from the newest snapshot is marked closed and keeps its last seen traffic. The history holds
+  1000 connections; only closed ones are evicted, oldest first. It is cleared by `reset()`
+  (service stop/start), not by leaving the page.
+- Sampling is every 250 ms and also right after the core logs an opened connection
+  (`[TCP]/[UDP] ... --> ...` at INFO), through `native/sampler`. Polling alone missed
+  connections shorter than the tick (31 listed vs 41 logged); the log trigger fixed it.
+  Sub-20 ms connections can still be missed, and the trigger depends on the core's INFO log
+  line format, so recheck it after every upstream sync.
+- The filter box matches host, IP, rule, proxy chain, app and protocol, ignoring case.
+  "Active only" hides closed ones; "Clear closed" forgets them. The toolbar sort icon cycles
+  Newest / Download / Upload; the other icon closes all live connections. Long press an item
+  to close it (only live ones can be closed).
+- At most 500 entries are returned, and they cross Binder in slices (`ConnectionList`),
+  like `ProviderList`, to stay under the 1 MB transaction limit.
+- The listed rule is the one the core stored when the connection was created. A rule change
+  does not affect existing connections; close them to see the new rule applied.
+- The filtering, sorting and history logic is `native/connview`, and the sampling loop is
+  `native/sampler`; both are free of mihomo dependencies and tested on the host with
+  `make go-test`.
+
 ## Testing on an emulator
 
 - Use a read-only AVD (`emulator -avd <name> -read-only -no-snapshot`) so the user's
@@ -106,7 +162,15 @@ ourselves. After a merge run `git submodule update --init --depth 1`.
 - `adb shell input text` turns `\n` into spaces. Type each line, then send `KEYCODE_ENTER`.
 - The VPN consent dialog appears on first start; accept it only on the throwaway AVD.
 - Delay tests need a reachable test URL in the profile's `proxy-groups[].url`; point it at
-  the host's test server and count its access log to confirm a test really ran.
+  the host's test server and count its access log to confirm a test really ran. To check the
+  Connections page, stay on the main page while making connections (for example
+  `echo -e 'GET / HTTP/1.0\r\nHost: x\r\n\r\n' | toybox nc -w 1 <host> 80` in `adb shell`), then compare the
+  page's total with the number of `[TCP] ... --> ... match/using` lines in logcat. To watch
+  progress, make the test server answer after a different delay per request (for example
+  0.3 s + 0.9 s * n) and take screenshots about once a second after tapping the test button.
+- To check delays survive a restart: `adb shell am force-stop <pkg>`, stop the test server so
+  the automatic test on start fails, restart the service and open the proxy page without
+  testing. `adb shell run-as <pkg> cat files/clash/delays.json` shows what was saved.
 - Never run two `git` commands in parallel in this repo. A second one hits `index.lock`
   and the commits end up merged or lost.
 
