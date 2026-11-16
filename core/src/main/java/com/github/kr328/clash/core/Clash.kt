@@ -119,6 +119,24 @@ object Clash {
             ?: ProxyGroup("Unknown", emptyList(), "")
     }
 
+    fun queryConnections(filter: String, sort: ConnectionSort, activeOnly: Boolean): List<Connection> {
+        val json = Bridge.nativeQueryConnections(filter, sort.name, activeOnly)
+
+        return Json.Default.decodeFromString(ListSerializer(Connection.serializer()), json)
+    }
+
+    fun closeConnection(id: String): Boolean {
+        return Bridge.nativeCloseConnection(id)
+    }
+
+    fun closeAllConnections() {
+        Bridge.nativeCloseAllConnections()
+    }
+
+    fun clearClosedConnections() {
+        Bridge.nativeClearClosedConnections()
+    }
+
     fun healthCheck(name: String): CompletableDeferred<Unit> {
         return CompletableDeferred<Unit>().apply {
             Bridge.nativeHealthCheck(this, name)

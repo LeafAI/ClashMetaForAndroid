@@ -195,6 +195,44 @@ Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheck(JNIEnv *env, jo
     healthCheck(_completable, _name);
 }
 
+JNIEXPORT jstring JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeQueryConnections(JNIEnv *env, jobject thiz,
+                                                                      jstring filter, jstring sort,
+                                                                      jboolean active_only) {
+    TRACE_METHOD();
+
+    scoped_string _filter = get_string(filter);
+    scoped_string _sort = get_string(sort);
+
+    scoped_string response = queryConnections(_filter, _sort, active_only ? 1 : 0);
+
+    return new_string(response);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeCloseConnection(JNIEnv *env, jobject thiz,
+                                                                     jstring id) {
+    TRACE_METHOD();
+
+    scoped_string _id = get_string(id);
+
+    return closeConnection(_id) != 0;
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeCloseAllConnections(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    closeAllConnections();
+}
+
+JNIEXPORT void JNICALL
+Java_com_github_kr328_clash_core_bridge_Bridge_nativeClearClosedConnections(JNIEnv *env, jobject thiz) {
+    TRACE_METHOD();
+
+    clearClosedConnections();
+}
+
 JNIEXPORT void JNICALL
 Java_com_github_kr328_clash_core_bridge_Bridge_nativeHealthCheckAll(JNIEnv *env, jobject thiz) {
     TRACE_METHOD();

@@ -32,13 +32,20 @@ func coreInit(home, versionName, gitVersion C.c_string, sdkVersion C.int) {
 	delegate.Init(h, v, g, s)
 
 	reset()
+
+	tunnel.StartConnectionRecorder()
 }
 
 //export reset
 func reset() {
+	if err := tunnel.FlushDelays(); err != nil {
+		log.Warnln("Save delays: %s", err.Error())
+	}
+
 	config.LoadDefault()
 	tunnel.ResetStatistic()
 	tunnel.CloseAllConnections()
+	tunnel.ResetConnectionHistory()
 
 	runtime.GC()
 	debug.FreeOSMemory()

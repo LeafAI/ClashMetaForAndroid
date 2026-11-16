@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"cfa/native/app"
+	"cfa/native/connview"
 	"cfa/native/tunnel"
 )
 
@@ -63,6 +64,40 @@ func queryGroup(name C.c_string, sortMode C.c_string) *C.char {
 	}
 
 	return marshalJson(response)
+}
+
+//export queryConnections
+func queryConnections(filter C.c_string, sortMode C.c_string, activeOnly C.int) *C.char {
+	mode := connview.SortNewest
+
+	switch C.GoString(sortMode) {
+	case "Download":
+		mode = connview.SortDownload
+	case "Upload":
+		mode = connview.SortUpload
+	}
+
+	return marshalJson(tunnel.QueryConnections(C.GoString(filter), mode, activeOnly != 0))
+}
+
+//export closeConnection
+func closeConnection(id C.c_string) C.int {
+	if tunnel.CloseConnection(C.GoString(id)) {
+		return 1
+	}
+
+	return 0
+}
+
+//export closeAllConnections
+func closeAllConnections() {
+	tunnel.CloseAllConnections()
+	tunnel.ObserveConnections()
+}
+
+//export clearClosedConnections
+func clearClosedConnections() {
+	tunnel.ClearClosedConnections()
 }
 
 //export healthCheck

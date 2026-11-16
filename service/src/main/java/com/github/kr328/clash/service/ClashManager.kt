@@ -46,6 +46,22 @@ class ClashManager(private val context: Context) : IClashManager,
         return Clash.queryOverride(slot)
     }
 
+    override fun queryConnections(filter: String, sort: ConnectionSort, activeOnly: Boolean): ConnectionList {
+        return ConnectionList(Clash.queryConnections(filter, sort, activeOnly))
+    }
+
+    override fun closeConnection(id: String): Boolean {
+        return Clash.closeConnection(id)
+    }
+
+    override fun closeAllConnections() {
+        Clash.closeAllConnections()
+    }
+
+    override fun clearClosedConnections() {
+        Clash.clearClosedConnections()
+    }
+
     override fun patchSelector(group: String, name: String): Boolean {
         return Clash.patchSelector(group, name).also {
             val current = store.activeProfile ?: return@also

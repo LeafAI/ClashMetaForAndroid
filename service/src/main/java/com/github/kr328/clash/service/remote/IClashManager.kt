@@ -13,6 +13,11 @@ interface IClashManager {
     fun queryConfiguration(): UiConfiguration
     fun queryProviders(): ProviderList
 
+    fun queryConnections(filter: String, sort: ConnectionSort, activeOnly: Boolean): ConnectionList
+    fun closeConnection(id: String): Boolean
+    fun closeAllConnections()
+    fun clearClosedConnections()
+
     fun patchSelector(group: String, name: String): Boolean
 
     suspend fun healthCheck(group: String)

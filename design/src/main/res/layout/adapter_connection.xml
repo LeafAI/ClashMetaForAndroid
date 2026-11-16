@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <data>
+        <variable
+            name="connection"
+            type="com.github.kr328.clash.core.model.Connection" />
+        <variable
+            name="title"
+            type="String" />
+        <variable
+            name="route"
+            type="String" />
+        <variable
+            name="detail"
+            type="String" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/logcat_padding_horizontal"
+        android:paddingVertical="@dimen/logcat_padding_vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{title}"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_text_margin"
+            android:text="@{route}"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            android:textColor="?colorControlActivated" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/item_text_margin"
+            android:text="@{detail}"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
+    </LinearLayout>
+</layout>
