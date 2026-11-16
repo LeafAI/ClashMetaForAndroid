@@ -79,7 +79,11 @@ func Load(path string) error {
 	// like hub.Parse()
 	hub.ApplyConfig(cfg)
 
-	tunnel.SwitchDelayProfile(path)
+	if err := tunnel.SwitchDelayProfile(path); err != nil {
+		log.Warnln("Load saved delays: %s", err.Error())
+	}
+
+	tunnel.PruneDelays()
 
 	app.ApplySubtitlePattern(rawCfg.ClashForAndroid.UiSubtitlePattern)
 

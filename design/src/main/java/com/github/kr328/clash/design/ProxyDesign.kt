@@ -72,9 +72,15 @@ class ProxyDesign(
     ) {
         adapter.updateAdapter(position, proxies, selectable, parent, links)
 
-        adapter.states[position].urlTesting = false
-
         updateUrlTestButtonStatus()
+    }
+
+    suspend fun finishUrlTesting(position: Int) {
+        withContext(Dispatchers.Main) {
+            adapter.states[position].urlTesting = false
+
+            updateUrlTestButtonStatus()
+        }
     }
 
     suspend fun requestRedrawVisible() {

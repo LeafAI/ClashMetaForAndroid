@@ -1,70 +1,45 @@
 package tunnel
 
 import (
-	"sync"
+	"errors"
+	"os"
 	"time"
 
 	C "github.com/metacubex/mihomo/constant"
-)
 
-// invalidDelay is the value reported by mihomo for proxies without a usable delay.
-const invalidDelay = 0xffff
+	"cfa/native/delaycache"
+)
 
 const defaultTestURL = "https://www.gstatic.com/generate_204"
 
-type delayRecord struct {
-	delay int
-	at    time.Time
+const delayCacheFile = "delays.json"
+
+const delayCacheDebounce = 2 * time.Second
+
+var delays = delaycache.New(func() string {
+	return C.Path.Resolve(delayCacheFile)
+}, delayCacheDebounce)
+
+// SwitchDelayProfile makes profile the active one for cached delays. Reloading
+// the same profile (mode switch, override change) keeps them, loading another
+// profile replaces them with the ones saved for it, if any.
+func SwitchDelayProfile(profile string) error {
+	return delays.SwitchProfile(profile)
 }
 
-// delayCache keeps the latest delay test result of every proxy so it survives
-// config reloads (e.g. switching the tunnel mode), which recreate every proxy
-// object and drop its live delay history, including the test URL it was
-// measured with. Hence entries are keyed by proxy name only.
-type delayCache struct {
-	mutex   sync.Mutex
-	profile string
-	entries map[string]delayRecord
+// PruneDelays forgets the cached delays of profiles whose directory no longer
+// exists, such as deleted profiles. The profile that is loaded is always kept.
+func PruneDelays() {
+	delays.Prune(func(profile string) bool {
+		_, err := os.Stat(profile)
+
+		return err == nil || !errors.Is(err, os.ErrNotExist)
+	})
 }
 
-var delays = &delayCache{entries: map[string]delayRecord{}}
-
-func (c *delayCache) store(name string, record delayRecord) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if old, ok := c.entries[name]; ok && old.at.After(record.at) {
-		return
-	}
-
-	c.entries[name] = record
-}
-
-func (c *delayCache) load(name string) (delayRecord, bool) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	record, ok := c.entries[name]
-
-	return record, ok
-}
-
-func (c *delayCache) switchProfile(profile string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if c.profile == profile {
-		return
-	}
-
-	c.profile = profile
-	c.entries = map[string]delayRecord{}
-}
-
-// SwitchDelayProfile drops cached delays when a different profile is loaded.
-// Reloading the same profile (mode switch, override change) keeps them.
-func SwitchDelayProfile(profile string) {
-	delays.switchProfile(profile)
+// FlushDelays writes cached delays to disk immediately.
+func FlushDelays() error {
+	return delays.Flush()
 }
 
 // delayTestURL returns the URL a proxy was most recently tested with.
@@ -89,9 +64,9 @@ func delayTestURL(p C.Proxy) string {
 
 // latestRecord returns the newest delay test result of a proxy across every
 // test URL, so the value does not depend on which group started the test.
-func latestRecord(p C.Proxy) (delayRecord, bool) {
+func latestRecord(p C.Proxy) (delaycache.Record, bool) {
 	var (
-		best  delayRecord
+		best  delaycache.Record
 		found bool
 	)
 
@@ -101,46 +76,45 @@ func latestRecord(p C.Proxy) (delayRecord, bool) {
 		}
 
 		last := state.History[len(state.History)-1]
-		if found && !last.Time.After(best.at) {
+		if found && !last.Time.After(best.At) {
 			continue
 		}
 
 		delay := int(last.Delay)
 		if delay == 0 || !state.Alive {
-			delay = invalidDelay
+			delay = delaycache.Invalid
 		}
 
-		best = delayRecord{delay: delay, at: last.Time}
+		best = delaycache.Record{Delay: delay, At: last.Time}
 		found = true
 	}
 
 	return best, found
 }
 
-// currentDelay returns the newest known delay of a proxy: the live result when
-// it is more recent than the cached one, otherwise the cached one. Proxies that
-// were never tested report invalidDelay.
-func currentDelay(p C.Proxy) int {
+// currentDelay returns the delay to display for a proxy and whether a test of
+// it is still in progress.
+func currentDelay(p C.Proxy) (delay int, pending bool) {
 	live, hasLive := latestRecord(p)
-	cached, hasCached := delays.load(p.Name())
 
-	switch {
-	case hasLive && (!hasCached || !cached.at.After(live.at)):
-		delays.store(p.Name(), live)
-
-		return live.delay
-	case hasCached:
-		return cached.delay
-	default:
-		return invalidDelay
-	}
+	return delays.Resolve(p.Name(), live, hasLive)
 }
 
 // recordDelays snapshots the results of a finished delay test, failures included.
 func recordDelays(proxies []C.Proxy) {
 	for _, p := range proxies {
 		if record, ok := latestRecord(p); ok {
-			delays.store(p.Name(), record)
+			delays.Store(p.Name(), record)
 		}
 	}
+}
+
+func proxyNames(proxies []C.Proxy) []string {
+	names := make([]string, 0, len(proxies))
+
+	for _, p := range proxies {
+		names = append(names, p.Name())
+	}
+
+	return names
 }

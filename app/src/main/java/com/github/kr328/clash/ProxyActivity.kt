@@ -6,11 +6,17 @@ import com.github.kr328.clash.core.model.Proxy
 import com.github.kr328.clash.design.ProxyDesign
 import com.github.kr328.clash.design.model.ProxyState
 import com.github.kr328.clash.util.withClash
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
+
+private const val PROGRESS_INTERVAL_MS = 300L
 
 class ProxyActivity : BaseActivity<ProxyDesign>() {
     override suspend fun main() {
@@ -94,11 +100,26 @@ class ProxyActivity : BaseActivity<ProxyDesign>() {
                         }
                         is ProxyDesign.Request.UrlTest -> {
                             launch {
-                                withClash {
-                                    healthCheck(names[it.index])
+                                val test = async {
+                                    withClash {
+                                        healthCheck(names[it.index])
+                                    }
                                 }
 
-                                design.requests.send(ProxyDesign.Request.ReloadAll)
+                                try {
+                                    while (test.isActive) {
+                                        delay(PROGRESS_INTERVAL_MS)
+
+                                        design.requests.trySend(ProxyDesign.Request.Reload(it.index))
+                                    }
+
+                                    test.await()
+                                } finally {
+                                    withContext(NonCancellable) {
+                                        design.finishUrlTesting(it.index)
+                                        design.requests.send(ProxyDesign.Request.ReloadAll)
+                                    }
+                                }
                             }
                         }
                         is ProxyDesign.Request.PatchMode -> {

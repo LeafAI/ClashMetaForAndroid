@@ -28,9 +28,15 @@ func HealthCheck(name string) {
 		return
 	}
 
+	proxies := g.Proxies()
+	names := proxyNames(proxies)
+
+	delays.BeginTest(names)
+	defer delays.EndTest(names)
+
 	if name == globalGroupName {
-		testGroupProxies(g.Proxies())
-		recordDelays(g.Proxies())
+		testGroupProxies(proxies)
+		recordDelays(proxies)
 
 		return
 	}
@@ -49,7 +55,7 @@ func HealthCheck(name string) {
 
 	wg.Wait()
 
-	recordDelays(g.Proxies())
+	recordDelays(proxies)
 }
 
 const (

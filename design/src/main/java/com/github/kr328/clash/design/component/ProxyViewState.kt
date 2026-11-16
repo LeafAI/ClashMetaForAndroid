@@ -26,11 +26,16 @@ class ProxyViewState(
     var controls: Int = config.unselectedControl
 
     private var delay: Int = 0
+    private var testing: Boolean = false
     private var selected: Boolean = false
     private var parentNow: String = ""
     private var linkNow: String? = null
 
     private var lastFrameTime = System.currentTimeMillis()
+
+    companion object {
+        private const val TESTING_TEXT = "…"
+    }
 
     fun update(snap: Boolean): Boolean {
         val frameTime = System.currentTimeMillis()
@@ -56,9 +61,14 @@ class ProxyViewState(
             subtitle = proxy.subtitle
         }
 
-        if (delay != proxy.delay) {
+        if (delay != proxy.delay || testing != proxy.testing) {
             delay = proxy.delay
-            delayText = if (proxy.delay in 0..Short.MAX_VALUE) proxy.delay.toString() else ""
+            testing = proxy.testing
+            delayText = when {
+                proxy.testing -> TESTING_TEXT
+                proxy.delay in 0..Short.MAX_VALUE -> proxy.delay.toString()
+                else -> ""
+            }
         }
 
         if (parentNow !== parent.now) {

@@ -27,6 +27,7 @@ type Proxy struct {
 	Subtitle string `json:"subtitle"`
 	Type     string `json:"type"`
 	Delay    int    `json:"delay"`
+	Testing  bool   `json:"testing"`
 	IsGroup  bool   `json:"isGroup"`
 }
 
@@ -178,13 +179,15 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 			}
 		}
 		_, isGroup := p.Adapter().(outboundgroup.ProxyGroup)
+		delay, testing := currentDelay(p)
 
 		result = append(result, &Proxy{
 			Name:     name,
 			Title:    strings.TrimSpace(title),
 			Subtitle: strings.TrimSpace(subtitle),
 			Type:     p.Type().String(),
-			Delay:    currentDelay(p),
+			Delay:    delay,
+			Testing:  testing,
 			IsGroup:  isGroup,
 		})
 	}
@@ -212,13 +215,15 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 			}
 
 			_, isGroup := px.Adapter().(outboundgroup.ProxyGroup)
+			delay, testing := currentDelay(px)
 
 			result = append(result, &Proxy{
 				Name:     name,
 				Title:    strings.TrimSpace(title),
 				Subtitle: strings.TrimSpace(subtitle),
 				Type:     px.Type().String(),
-				Delay:    currentDelay(px),
+				Delay:    delay,
+				Testing:  testing,
 				IsGroup:  isGroup,
 			})
 		}
